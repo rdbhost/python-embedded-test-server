@@ -4,12 +4,6 @@ Python Unittest Skeleton
 This is a skeleton Python unittest file to allow it to be grabbed and
 filled in, instead of having to remember the structure.
 
-The "test_skeleton.py" is an example of standard Python tests.
-
-The "test_bottle.py" is some test code for a Bottle web application.
-
-The "cli_skeleton" is an example of testing a command-line application.
-
 The "test_faketcpserver.py" includes sample code which uses the
 faketcpserver module, mentioned below, to test code reaction to
 misbehaving TCP servers.

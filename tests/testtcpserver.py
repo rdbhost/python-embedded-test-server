@@ -9,6 +9,7 @@
 #     https://github.com/linsomniac/python-unittest-skeleton
 
 import sys
+import threading
 
 PY3 = sys.version > '3'
 
@@ -21,33 +22,52 @@ class FakeTCPServer:
     :py:func:`socket.recv` calls to communicate with the client process.
     '''
 
+    GROUP = 'fakeTestTCPServer'
+
+    STOPPED = False
+
+    def _perConn(self, count):
+        connection, addr = self.s.accept()
+        print('FTCP accepted %s' % str(addr))
+        self.server(self.s, connection, count)
+        count += 1
+
     def __init__(self):
         import socket
-        import os
-        import signal
 
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.listen(1)
-        self.port = self.s.getsockname()[1]
-        self.pid = os.fork()
+        def _setup(self, evt):
 
-        if self.pid != 0:
-            self.s.close()
-            del self.s
-        else:
-            def alarm(signum, frame):
-                os._exit(0)
+            FakeTCPServer.STOPPED = False
 
+            self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            #self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.s.settimeout(5)
+            self.s.bind(('127.0.0.1', 2222))
+            self.s.listen(1)
+            self.port = self.s.getsockname()[1]
+
+            print('setup port %s'%self.port)
             count = 0
-            signal.signal(signal.SIGALRM, alarm)
-            signal.alarm(5)
-            while True:
-                connection, addr = self.s.accept()
-                self.server(self.s, connection, count)
-                count += 1
+            evt.set()
+            while not self.STOPPED:
+                self._perConn(count)
+            print('setup OUT')
+            #self.s.shutdown(socket.SHUT_RDWR)
+            self.s.close()
+
+        while [t for t in threading.enumerate() if t.name == self.GROUP]:
+            pass
+        evt = threading.Event()
+        thd = threading.Thread(name=self.GROUP, target=lambda: _setup(self, evt))
+        thd.start()
+        evt.wait()
+
+    def server(self, sock, conn, ct):
+        raise NotImplementedError('implement .server method')
 
 
 RECEIVE = None          # instruct the server to read data
+STOP_SERVER = (None, None)
 
 
 class CommandServer(FakeTCPServer):
@@ -73,9 +93,26 @@ class CommandServer(FakeTCPServer):
         for command in self.commands:
             if command == RECEIVE:
                 conn.recv(1000)
+            elif command == STOP_SERVER:
+                FakeTCPServer.STOPPED = True
             else:
                 if PY3:
                     conn.send(bytes(command, 'ascii'))
                 else:
                     conn.send(bytes(command))
         conn.close()
+
+
+
+class OneShotServer(CommandServer):
+
+    def __init__(self, commands):
+        self.commands = commands #[RECEIVE, command]
+        FakeTCPServer.__init__(self)
+
+    def _perConn(self, count):
+        connection, addr = self.s.accept()
+        print('OSS accepted %s' % str(addr))
+        self.server(self.s, connection, count)
+        FakeTCPServer.STOPPED = True
+
