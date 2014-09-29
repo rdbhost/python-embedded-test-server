@@ -22,7 +22,7 @@ from testtcpserver import RECEIVE, CommandServer, OneShotServer
 
 class TestAll(unittest.TestCase):
 
-    def test_Simulate_Web_Request(self):
+    def test0_Simulate_Web_Request(self):
 
         webResponse = \
 """HTTP/1.0 200 OK
@@ -42,9 +42,9 @@ X-Served-By:cache-ord1721-ORD
 
 """
         web_server = OneShotServer([RECEIVE, webResponse])
-        sc = requests.get('http://127.0.0.1:{0}'.format(web_server.port))
+        sc = requests.get('http://127.0.0.1:{0}'.format(web_server.port), verify=False)
 
-    def test_Simulate_Socket_Read(self):
+    def test1_Simulate_Socket_Read(self):
 
         receive_then_disconnect_server = OneShotServer([RECEIVE, 'STORED\r\n'])
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -53,6 +53,21 @@ X-Served-By:cache-ord1721-ORD
         data = sock.recv(1024)
         sock.close()
         self.assertTrue(b'STORED' in data)
+
+    def test2_Command(self):
+
+        receive_then_disconnect_server = CommandServer([RECEIVE, 'STORED\r\n'])
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect(('127.0.0.1', receive_then_disconnect_server.port))
+        sock.sendall(b'HELLO')
+        data = sock.recv(1024)
+        sock.close()
+        self.assertTrue(b'STORED' in data)
+
+        self.assertFalse(receive_then_disconnect_server.STOPPED)
+
+        receive_then_disconnect_server.stop()
+        self.assertTrue(receive_then_disconnect_server.STOPPED)
 
 
 
