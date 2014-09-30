@@ -23,7 +23,7 @@ each distinct unit test.
     r = requests.get('http://localhost:%s/hello' % srvr.port)
     assert 'hello world' in r.text
     
-    srvr.close()
+    srvr.stop()
     
     
 The server processed the command list in order.  RECEIVE means read some bytes, and bytes or strings get sent. 
