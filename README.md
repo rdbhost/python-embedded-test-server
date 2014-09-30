@@ -1,7 +1,7 @@
 Python Embedded Test Server
 ========================
 
-"faketcpserver.py" has code to create a fake TCP server which you can
+"embeddedserver.py" has code to create a fake TCP server which you can
 provide a script to emulate certain send/receive/hangup behavior, to
 simulate a TCP server that misbehaves or disconnects.  
 
