@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 #
-#  python-unittest-skeleton helper which allows for creating TCP
+#  python-embedded-test-server which allows for creating TCP
 #  servers that misbehave in certain ways, for testing code.
 #
-#===============
-#  This is based on a skeleton test file, more information at:
-#
-#     https://github.com/linsomniac/python-unittest-skeleton
+
 
 import sys
 import threading
@@ -106,7 +103,6 @@ class GenericServer(TestTCPServer):
                 conn.send(bytes(data))
 
     def server(self, sock, conn, count):
-        filters = {}
         conn.settimeout(2.0)
         for command in self.commands:
             if self.STOPPED:
@@ -115,15 +111,10 @@ class GenericServer(TestTCPServer):
                 try:
                     command = command if command else 1
                     d = self._recieveData(conn, abs(command))
-                    for nm, func in filters:
-                        if nm in d and func is not None:
-                            func()
                     self.withReceivedData(d)
                 except socket.timeout:
                     self.STOPPED = True
                     break
-            elif type(command) == tuple:
-                filters[command[1]] = lambda: conn.close()
             else:
                 self._sendData(conn, command)
 
@@ -189,7 +180,7 @@ class CommandServer(GenericServer):
             print('SERVER: closing socket connection %s after %s bytes' % (conn.getpeername()[1], self.numBytesSent))
 
 
-class AsyncioCommandServer(GenericServer):
+class AsyncioCommandServer(CommandServer):
     """same as CommandServer, but feeds data into a StreamReader"""
 
     def __init__(self, commands, loop=None, reader=None, host='127.0.0.1', port=2222, verbose=True):

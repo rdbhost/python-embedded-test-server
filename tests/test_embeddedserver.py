@@ -16,8 +16,8 @@ import socket
 
 import sys
 
-import testtcpserver
-from testtcpserver import RECEIVE, CommandServer, OneShotServer
+import embeddedserver
+from embeddedserver import RECEIVE, CommandServer, OneShotServer
 
 
 class TestAll(unittest.TestCase):
