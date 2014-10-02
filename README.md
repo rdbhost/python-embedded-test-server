@@ -72,6 +72,23 @@ This socket is for testing.  It is a true socket, and can be passed to select.se
 it also has some features useful for testing network clients.
 
 
+    sock = TestingSocket(socket.AF_INET, socket.SOCK_STREAM)
+    conn = sock.connect(('127.0.0.1', 2222))
+
+
+If your situation involves getting a socket that is already connected, you can wrap it with a TestingSocket
+
+    conn = HTTPConnection(host='127.0.0.1', port=2222)
+    assert conn.sock is False # ok
+    conn.connect()
+    assert conn.sock is not False # ok
+    
+    conn.sock = TestingSocket(sock=sock) # replace connected socket with a connected TestSocket
+    
+    conn.request('GET', '/')
+    assert 'GET' in conn.sock._data['data_out']
+    
+
 It tracks all data sent, and counts of send() and sendall() methods.  These are stored in 
 a _data attribute.
 
