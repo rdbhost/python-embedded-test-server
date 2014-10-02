@@ -87,3 +87,6 @@ is breakOn(trigger_string, exception_to_raise)
     
 The socket will raise the given error when the trigger string is found in the send() or sendall() data.
 
+
+
+This product licensed under the MIT license.
