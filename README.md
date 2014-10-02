@@ -7,8 +7,8 @@ simulate a TCP server that misbehaves or disconnects.
 
 Based on linsomniac's python-unittest-skeleton
 
-Usage
-======
+Usage of Embedded Server
+===========================
 
 
 The server runs in it's own thread, and is very lightweight, so you can spin one up for
@@ -60,6 +60,30 @@ the received data as a StreamReader.
     
     
  
-  And lastly, the OneShotServer works like CommandServer, but quits after one client connection.
+ And lastly, the OneShotServer works like CommandServer, but quits after one client connection.
   
   
+  
+  
+Usage of TestingSocket
+===========================
+
+This socket is for testing.  It is a true socket, and can be passed to select.select(..), or used with Asyncio, but 
+it also has some features useful for testing network clients.
+
+
+It tracks all data sent, and counts of send() and sendall() methods.  These are stored in 
+a _data attribute.
+
+    assert b'GET' in sock._data['data_out'], 'ok'
+    assert sock._data['send_calls'] < 3, 'too many calls'
+    assert sock._data['sendall_calls'] < 3, 'too many calls'
+    
+    
+You can also simulate broken pipes or other transmission errors, with the breakOn method.  The signature
+is breakOn(trigger_string, exception_to_raise)
+
+    sock.breakOn('byte-me', OSError(errno.EPIPE, 'gotcha'))
+    
+The socket will raise the given error when the trigger string is found in the send() or sendall() data.
+

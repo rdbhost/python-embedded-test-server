@@ -1,15 +1,59 @@
 #!/usr/bin/env python
 #
-#  python-embedded-test-server which allows for creating TCP
+#  python-unittest-skeleton helper which allows for creating TCP
 #  servers that misbehave in certain ways, for testing code.
 #
-
+#===============
+#  This is based on a skeleton test file, more information at:
+#
+#     https://github.com/linsomniac/python-unittest-skeleton
 
 import sys
 import threading
 import socket
 import time
 PY3 = sys.version > '3'
+
+
+class TestingSocket(socket.socket):
+    """subclass of a true socket"""
+
+    def __init__(self, family=socket.AF_INET, type=socket.SOCK_STREAM, sock=None, host=None, port=None, *args, **kwargs):
+        self._data = {'sendall_calls': 0,
+                      'send_calls': 0,
+                      'data_out': b'',
+                      'cue': None,
+                      'throw': None}
+        self.host = host
+        self.port = port
+        if sock is not None:
+            super(TestingSocket, self).__init__(family=sock.family, type=sock.type, proto=sock.proto, fileno=sock.fileno())
+            self.settimeout(sock.gettimeout())
+            sock.detach()
+        else:
+            super(TestingSocket, self).__init__(family, type, *args, **kwargs)
+
+    def sendall(self, data):
+        self._data['sendall_calls'] += 1
+        self._data['data_out'] += data
+        self.testBreak()
+        return socket.socket.sendall(self, data)
+
+    def send(self, data):
+        self._data['send_calls'] += 1
+        self._data['data_out'] += data
+        self.testBreak()
+        return socket.socket.send(self, data)
+
+    def testBreak(self):
+        cue = self._data['cue']
+        if cue is not None and cue in self._data['data_out']:
+            raise self._data['throw']
+
+    def breakOn(self, cue, exc):
+        """registers cue, and when cue is seen in send data, exception is thrown"""
+        self._data['cue'] = cue
+        self._data['throw'] = exc
 
 
 class TestTCPServer:
@@ -87,7 +131,7 @@ class GenericServer(TestTCPServer):
         inp = b''
         d = True
         while d and len(inp) < minQuan:
-            d = conn.recv(1000)
+            d = conn.recv(1024)
             inp = inp + d
         if not inp:
             return None
@@ -112,6 +156,8 @@ class GenericServer(TestTCPServer):
                     command = command if command else 1
                     d = self._recieveData(conn, abs(command))
                     self.withReceivedData(d)
+                except ConnectionAbortedError as e:
+                    return
                 except socket.timeout:
                     self.STOPPED = True
                     break
@@ -142,7 +188,7 @@ class CommandServer(GenericServer):
     >>> sc = memcached2.ServerConnection('memcached://127.0.0.1:{0}/'
     >>>         .format(fake_server.port))
     '''
-
+    
     def __init__(self, commands, host='127.0.0.1', port=2222, verbose=True):
         GenericServer.__init__(self, commands, host, port)
         self.numBytesSent = 0
